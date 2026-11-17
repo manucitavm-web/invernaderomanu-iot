@@ -41,21 +41,39 @@ CSV_EJEMPLO = Path(__file__).parent / "datos_grafana.csv"
 
 st.set_page_config(page_title="Invernadero IoT", page_icon="🌱", layout="wide")
 
-# ---------- Estilos visuales sutiles (CSS) ----------
+# ---------- Estilos visuales (Fondo verde y azul clarito) ----------
 st.markdown(
     """
     <style>
+        /* Fondo principal con degradado verde menta y azul cielo clarito */
+        .stApp {
+            background: linear-gradient(135deg, #e8f5e9 0%, #e1f5fe 100%);
+        }
+
+        /* Fondo del panel lateral (sidebar) */
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #dff2e3 0%, #d8effc 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* Barra superior transparente */
+        header[data-testid="stHeader"] {
+            background-color: transparent;
+        }
+
         .block-container {
             padding-top: 2rem;
             padding-bottom: 3rem;
         }
-        /* Tarjetas de métricas y contenedores más limpios */
+
+        /* Tarjetas de métricas blancas y translúcidas */
         div[data-testid="stMetric"] {
-            background-color: rgba(128, 128, 128, 0.04);
-            border: 1px solid rgba(128, 128, 128, 0.12);
+            background-color: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
             padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 77, 64, 0.05);
         }
     </style>
     """,
@@ -226,17 +244,23 @@ for clave in presentes:
     d = datos[["tiempo", clave]].dropna()
     fuera = d[(d[clave] > var["max"]) | (d[clave] < var["min"])]
     fig = go.Figure()
-    fig.add_hrect(y0=var["min"], y1=var["max"], fillcolor="#2e7d32", opacity=0.08, line_width=0,
+    fig.add_hrect(y0=var["min"], y1=var["max"], fillcolor="#2e7d32", opacity=0.10, line_width=0,
                   annotation_text="Rango óptimo de operación", annotation_position="top left")
     fig.add_trace(go.Scatter(x=d["tiempo"], y=d[clave], mode="lines", name=var["nombre"],
                              line=dict(color=var["color"], width=2, shape="spline")))
     if not fuera.empty:
         fig.add_trace(go.Scatter(x=fuera["tiempo"], y=fuera[clave], mode="markers", name="Fuera de rango",
                                  marker=dict(color="#111111", size=6, symbol="x")))
-    fig.update_layout(height=320, margin=dict(l=10, r=10, t=30, b=10),
-                      title=f'{var["nombre"]} ({var["unidad"]})',
-                      yaxis_title=var["unidad"], legend=dict(orientation="h", y=-0.2),
-                      hovermode="x unified")
+    fig.update_layout(
+        height=320,
+        margin=dict(l=15, r=15, t=40, b=15),
+        title=f'{var["nombre"]} ({var["unidad"]})',
+        yaxis_title=var["unidad"],
+        legend=dict(orientation="h", y=-0.2),
+        hovermode="x unified",
+        paper_bgcolor="rgba(255, 255, 255, 0.78)",
+        plot_bgcolor="rgba(255, 255, 255, 0.5)",
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
@@ -281,9 +305,14 @@ if len(presentes) == 2:
             fig = go.Figure(go.Scatter(
                 x=par["temperatura"], y=par["humedad_suelo"], mode="markers",
                 marker=dict(color="#2e7d32", size=7, opacity=0.6)))
-            fig.update_layout(height=340, margin=dict(l=10, r=10, t=10, b=10),
-                              xaxis_title="Temperatura del aire (°C)",
-                              yaxis_title="Humedad del suelo (%)")
+            fig.update_layout(
+                height=340,
+                margin=dict(l=15, r=15, t=15, b=15),
+                xaxis_title="Temperatura del aire (°C)",
+                yaxis_title="Humedad del suelo (%)",
+                paper_bgcolor="rgba(255, 255, 255, 0.78)",
+                plot_bgcolor="rgba(255, 255, 255, 0.5)",
+            )
             st.plotly_chart(fig, use_container_width=True)
         with der:
             st.metric("Correlación de Pearson", f"{r:.2f}")
