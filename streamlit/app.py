@@ -15,31 +15,31 @@ import streamlit as st
 # ---------- Definición del sistema ----------
 VARIABLES = {
     "temperatura": {
-        "nombre": "Temperatura del aire",
+        "nombre": "🌡️ Temperatura del aire",
         "unidad": "°C",
         "min": 18.0,
         "max": 30.0,
         "limites": (0.0, 50.0),
         "claves": ["temp"],
         "color": "#e53935",
-        "alerta_alta": "Calor excesivo: enciende el ventilador.",
-        "alerta_baja": "Frío: mantén el ventilador apagado y cierra el invernadero.",
+        "alerta_alta": "🔥 Calor excesivo: enciende el ventilador.",
+        "alerta_baja": "❄️ Frío: mantén el ventilador apagado y cierra el invernadero.",
     },
     "humedad_suelo": {
-        "nombre": "Humedad del suelo",
+        "nombre": "💧 Humedad del suelo",
         "unidad": "%",
         "min": 40.0,
         "max": 80.0,
         "limites": (0.0, 100.0),
         "claves": ["hum", "suelo"],
         "color": "#0288d1",
-        "alerta_alta": "Suelo encharcado: suspende el riego.",
-        "alerta_baja": "Suelo seco: hace falta regar.",
+        "alerta_alta": "🌊 Suelo encharcado: suspende el riego.",
+        "alerta_baja": "🏜️ Suelo seco: hace falta regar.",
     },
 }
 CSV_EJEMPLO = Path(__file__).parent / "datos_grafana.csv"
 
-st.set_page_config(page_title="Invernadero IoT", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Invernadero IoT 🌱", page_icon="🌱", layout="wide")
 
 # ---------- Estilos visuales (Fondo verde y azul clarito) ----------
 st.markdown(
@@ -161,7 +161,7 @@ def episodios(datos: pd.DataFrame, clave: str) -> pd.DataFrame:
             continue
         filas.append({
             "Variable": var["nombre"],
-            "Tipo": "Por encima del rango" if tipo == "alta" else "Por debajo del rango",
+            "Tipo": "📈 Por encima del rango" if tipo == "alta" else "📉 Por debajo del rango",
             "Inicio": bloque["tiempo"].iloc[0],
             "Fin": bloque["tiempo"].iloc[-1],
             "Duración (min)": round((bloque["tiempo"].iloc[-1] - bloque["tiempo"].iloc[0]).total_seconds() / 60, 1),
@@ -172,28 +172,28 @@ def episodios(datos: pd.DataFrame, clave: str) -> pd.DataFrame:
 
 
 # ---------- Interfaz ----------
-st.title("🌱 Invernadero IoT — Análisis de Operación")
+st.title("🌱 Invernadero IoT — Análisis de Operación 🌿")
 st.caption(
-    "Telemetría del ESP32 (temperatura del aire y humedad del suelo) guardada en InfluxDB "
+    "📊 Telemetría del ESP32 (temperatura del aire y humedad del suelo) guardada en InfluxDB "
     "y exportada desde Grafana."
 )
 st.divider()
 
 with st.sidebar:
-    st.header("📂 Datos")
+    st.header("📂 Panel de Datos")
     archivos = st.file_uploader(
-        "CSV exportado de Grafana", type="csv", accept_multiple_files=True,
+        "📥 CSV exportado de Grafana", type="csv", accept_multiple_files=True,
         help="Puedes subir un CSV con las dos variables o uno por cada panel.",
     )
     st.divider()
-    st.header("⚙️ Rangos de operación")
+    st.header("⚙️ Rangos de Cultivo")
     for clave, var in VARIABLES.items():
         var["min"], var["max"] = st.slider(
             f'{var["nombre"]} ({var["unidad"]})',
             min_value=var["limites"][0], max_value=var["limites"][1],
             value=(var["min"], var["max"]), step=0.5,
         )
-    st.caption("Los valores por defecto corresponden a un cultivo de hortalizas (tomate).")
+    st.caption("🍅 Los valores por defecto corresponden a un cultivo de hortalizas (tomate).")
 
 if archivos:
     datos = unir([leer_csv(a) for a in archivos])
@@ -207,19 +207,19 @@ else:
 presentes = [c for c in VARIABLES if c in datos.columns and datos[c].notna().any()]
 if datos.empty or not presentes:
     st.error(
-        "No encontré las variables en el archivo. El CSV debe tener una columna de tiempo y "
+        "❌ No encontré las variables en el archivo. El CSV debe tener una columna de tiempo y "
         "columnas llamadas `temperatura` y `humedad_suelo`."
     )
     st.stop()
 
 inicio, fin = datos["tiempo"].min(), datos["tiempo"].max()
 st.info(
-    f"📅 **Periodo analizado:** {inicio:%Y-%m-%d %H:%M} a {fin:%Y-%m-%d %H:%M} &nbsp;&nbsp;|&nbsp;&nbsp; "
-    f"📊 **Total de registros:** {len(datos):,} lecturas"
+    f"⏱️ **Periodo analizado:** {inicio:%Y-%m-%d %H:%M} a {fin:%Y-%m-%d %H:%M} &nbsp;&nbsp;|&nbsp;&nbsp; "
+    f"📈 **Total registros:** {len(datos):,} lecturas"
 )
 
 # --- Estado actual ---
-st.subheader("📌 Última lectura")
+st.subheader("📌 Última Lectura en Tiempo Real")
 columnas = st.columns(len(presentes))
 for col, clave in zip(columnas, presentes):
     var = VARIABLES[clave]
@@ -233,19 +233,19 @@ for col, clave in zip(columnas, presentes):
         elif ultimo < var["min"]:
             st.error(f'⚠️ {var["alerta_baja"]}')
         else:
-            st.success(f'✓ Dentro del rango ({var["min"]:g}–{var["max"]:g} {var["unidad"]})')
+            st.success(f'🌱 Dentro del rango óptimo ({var["min"]:g}–{var["max"]:g} {var["unidad"]})')
 
 st.divider()
 
 # --- Series de tiempo ---
-st.subheader("📈 Comportamiento en el tiempo")
+st.subheader("📈 Evolución Histórica en el Invernadero")
 for clave in presentes:
     var = VARIABLES[clave]
     d = datos[["tiempo", clave]].dropna()
     fuera = d[(d[clave] > var["max"]) | (d[clave] < var["min"])]
     fig = go.Figure()
     fig.add_hrect(y0=var["min"], y1=var["max"], fillcolor="#2e7d32", opacity=0.10, line_width=0,
-                  annotation_text="Rango óptimo de operación", annotation_position="top left")
+                  annotation_text="🌿 Rango óptimo de operación", annotation_position="top left")
     fig.add_trace(go.Scatter(x=d["tiempo"], y=d[clave], mode="lines", name=var["nombre"],
                              line=dict(color=var["color"], width=2, shape="spline")))
     if not fuera.empty:
@@ -266,7 +266,7 @@ for clave in presentes:
 st.divider()
 
 # --- Estadísticas ---
-st.subheader("📊 Estadísticas descriptivas")
+st.subheader("📋 Resumen Estadístico del Cultivo")
 filas = []
 for clave in presentes:
     var = VARIABLES[clave]
@@ -284,19 +284,19 @@ st.dataframe(pd.DataFrame(filas), hide_index=True, use_container_width=True)
 st.divider()
 
 # --- Alertas ---
-st.subheader("🚨 Alertas por umbral")
+st.subheader("🚨 Alertas y Monitoreo de Umbrales")
 tablas = [episodios(datos, c) for c in presentes]
 alertas = pd.concat([t for t in tablas if not t.empty]) if any(not t.empty for t in tablas) else pd.DataFrame()
 if alertas.empty:
-    st.success("🎉 ¡Excelente! No hubo lecturas fuera de rango en todo el periodo analizado.")
+    st.success("🎉 ¡Excelente cultivo! No hubo lecturas fuera de rango en todo el periodo analizado.")
 else:
-    st.write(f"Se detectaron **{len(alertas)} episodios** fuera de rango:")
+    st.write(f"⚠️ Se detectaron **{len(alertas)} episodios** fuera de los rangos ideales:")
     st.dataframe(alertas.sort_values("Inicio"), hide_index=True, use_container_width=True)
 
 # --- Correlación ---
 if len(presentes) == 2:
     st.divider()
-    st.subheader("🔗 Relación entre temperatura y humedad del suelo")
+    st.subheader("🔬 Correlación Climática (Temperatura vs. Humedad)")
     par = datos[presentes].dropna()
     if len(par) >= 3 and par.nunique().min() > 1:
         r = par["temperatura"].corr(par["humedad_suelo"])
@@ -315,38 +315,38 @@ if len(presentes) == 2:
             )
             st.plotly_chart(fig, use_container_width=True)
         with der:
-            st.metric("Correlación de Pearson", f"{r:.2f}")
+            st.metric("📊 Correlación de Pearson", f"{r:.2f}")
             fuerza = "fuerte" if abs(r) >= 0.7 else "moderada" if abs(r) >= 0.4 else "débil"
             if abs(r) < 0.2:
-                st.write("Las dos variables casi no se relacionan en este periodo.")
+                st.write("🌿 Las dos variables casi no se relacionan en este periodo.")
             elif r < 0:
-                st.write(f"Relación inversa {fuerza}: cuando sube la temperatura, el suelo tiende a secarse. "
-                         "Conviene programar el riego para las horas más calientes.")
+                st.write(f"☀️ Relación inversa {fuerza}: cuando sube la temperatura, el suelo tiende a secarse. "
+                         "Conviene programar el riego automático para las horas más calientes.")
             else:
-                st.write(f"Relación directa {fuerza}: temperatura y humedad del suelo suben juntas en este periodo.")
+                st.write(f"🌱 Relación directa {fuerza}: temperatura y humedad del suelo suben juntas en este periodo.")
     else:
-        st.info("Se necesitan más lecturas (y que varíen) para calcular la correlación.")
+        st.info("ℹ️ Se necesitan más lecturas (y que varíen) para calcular la correlación.")
 
 st.divider()
 
 # --- Recomendaciones ---
-st.subheader("💡 Recomendaciones para la operación")
+st.subheader("💡 Recomendaciones para la Operación del Invernadero")
 recomendaciones = []
 if "temperatura" in presentes:
     s = datos["temperatura"].dropna()
     calor = (s > VARIABLES["temperatura"]["max"]).mean() * 100
     if calor > 0:
-        recomendaciones.append(f"La temperatura superó el máximo el **{calor:.0f} %** del tiempo: "
-                               "el ventilador debió estar encendido en esos periodos.")
+        recomendaciones.append(f"🌡️ La temperatura superó el máximo el **{calor:.0f} %** del tiempo: "
+                               "el sistema de ventilación debió estar encendido en esos periodos.")
 if "humedad_suelo" in presentes:
     s = datos["humedad_suelo"].dropna()
     seco = (s < VARIABLES["humedad_suelo"]["min"]).mean() * 100
     if seco > 0:
-        recomendaciones.append(f"El suelo estuvo seco el **{seco:.0f} %** del tiempo: revisa la frecuencia de riego.")
+        recomendaciones.append(f"💧 El suelo estuvo seco el **{seco:.0f} %** del tiempo: revisa la frecuencia de riego del sistema.")
 if not recomendaciones:
-    recomendaciones.append("El invernadero operó dentro de los rangos definidos. No se requieren acciones.")
+    recomendaciones.append("🌱 El invernadero operó perfectamente dentro de los rangos definidos. ¡Buen trabajo de cultivo!")
 for texto in recomendaciones:
     st.markdown(f"- {texto}")
 
-with st.expander("📂 Ver datos cargados"):
+with st.expander("📂 Ver datos crudos cargados"):
     st.dataframe(datos, hide_index=True, use_container_width=True)
